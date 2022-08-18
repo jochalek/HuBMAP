@@ -16,6 +16,7 @@ Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 IndirectArrays = "9b13fd28-a010-5f03-acff-a1bbcff69959"
 MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
 Metalhead = "dbeba491-748d-5e0e-a39e-b530a07fa0cc"
+PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 

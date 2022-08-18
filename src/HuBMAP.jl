@@ -1,5 +1,9 @@
 module HuBMAP
 
+# using HuBMAPapp
+
+# HuBMAPapp.julia_main()
+
 ## Stuff for custom Unet
 #export Unet, bce
 

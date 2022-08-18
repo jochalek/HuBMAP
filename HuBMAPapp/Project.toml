@@ -1,0 +1,11 @@
+name = "HuBMAPapp"
+uuid = "3d2ea7d4-34a6-4fff-8a5a-94fbbe4f4f5e"
+authors = ["justin <jochalek125@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+FastAI = "5d0beca9-ade8-49ae-ad0b-a3cf890e669f"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
