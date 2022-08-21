@@ -3,12 +3,26 @@ module HuBMAPapp
 # using DrWatson
 # quickactivate("../../", "HuBMAP")
 
-using CSV, Images, FileIO, DataFrames, FastAI
+using CSV, Images, FileIO, DataFrames, FastAI, ArgParse
 
-DATASET_FOLDER = "/kaggle/input/hubmap-organ-segmentation"
-MODEL_FOLDER = "/kaggle/input/models"
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+        "--debug_csv"
+            help = "Bypass predict and write a dummy submission.csv"
+            action = :store_true
+        "--test_data", "-t"
+            help = "The directory of the test data including test.csv and test_images/"
+            arg_type = String
+            default = "/kaggle/input/hubmap-organ-segmentation"
+        "--model", "-m"
+            help = "The location of the inference model"
+            arg_type = String
+            default = "/kaggle/input/models/initmodel.jld2"
+    end
+    return parse_args(s)
+end
 
-df = DataFrame(CSV.File(joinpath(DATASET_FOLDER, "test.csv")))
 
 function tileimage(srcimage; stepsize=128)
     #srcimage = FastAI.load(srcimage)
@@ -39,7 +53,7 @@ end
 
 
 function runmodel(batch)
-	taskmodel = joinpath(MODEL_FOLDER, "initmodel.jld2") #FIXME
+	taskmodel = args["model"]
 	task, model = loadtaskmodel(taskmodel)
 	model = gpu(model);
 	preds = predictbatch(task, model, batch; device = gpu, context = Inference())
@@ -87,12 +101,13 @@ function encode_rle(v)
 			encoding = string(encoding, sum(lens[1:i]), " ", lens[i], " ")
 		end
 	end
-    return strip(encoding)
+    #return strip(encoding) #FIXME is this the issue?
+    return encoding
 end
 
 
 function predict(id)
-    image = Images.load(joinpath(DATASET_FOLDER, "test_images", string(id) * ".tiff"))
+    image = Images.load(joinpath(args["test_data"], "test_images", string(id) * ".tiff"))
 
 	#TILEIMAGE
 	batch = tileimage(image)
@@ -104,28 +119,37 @@ function predict(id)
 	return encode_rle(mask)
 end
 
-function generate_submission(df::DataFrame)
+function generate_submission(df::DataFrame, args)
     df_subm = DataFrame()
-    for row in nrow(df)
-        df_row = DataFrame("id" => df[row, :id], "rle" => predict(df[row, :id]))
-        df_subm = vcat(df_subm, df_row)
+    if args["debug_csv"]
+        for row in 1:nrow(df)
+            df_row = DataFrame("id" => df[row, :id], "rle" => "1 1")
+            df_subm = vcat(df_subm, df_row)
+        end
+    else
+        for row in 1:nrow(df)
+            df_row = DataFrame("id" => df[row, :id], "rle" => predict(df[row, :id]))
+            df_subm = vcat(df_subm, df_row)
+        end
     end
     return df_subm
 end
 
 function write_submission(df::DataFrame)
-    df_subm = generate_submission(df)
     CSV.write("submission.csv", df_subm; bufsize=2^23)
 end
 
-function real_main(df::DataFrame)
-    write_submission(df)
+function real_main()
+    args = parse_commandline()
+    df = DataFrame(CSV.File(joinpath(args["test_data"], "test.csv")))
+    df_subm = generate_submission(df, args)
+    write_submission(df_subm)
 end
 
 function julia_main()::Cint
   # do something based on ARGS?
   try
-      real_main(df)
+      real_main()
   catch
       Base.invokelatest(Base.display_error, Base.catch_stack())
       return 1
@@ -134,3 +158,6 @@ function julia_main()::Cint
 end
 
 end # module
+
+## FIXME Remove before compile
+# HuBMAPapp.real_main(HuBMAPapp.df)
