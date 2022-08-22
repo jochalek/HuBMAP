@@ -1,8 +1,5 @@
 module HuBMAPapp
 
-# using DrWatson
-# quickactivate("../../", "HuBMAP")
-
 using CSV, Images, FileIO, DataFrames, FastAI, ArgParse
 
 function parse_commandline()
@@ -52,7 +49,7 @@ function composemask(preds, srcimage)
 end
 
 
-function runmodel(batch)
+function runmodel(batch, args)
 	taskmodel = args["model"]
 	task, model = loadtaskmodel(taskmodel)
 	model = gpu(model);
@@ -106,13 +103,13 @@ function encode_rle(v)
 end
 
 
-function predict(id)
+function predict(id, args)
     image = Images.load(joinpath(args["test_data"], "test_images", string(id) * ".tiff"))
 
 	#TILEIMAGE
 	batch = tileimage(image)
 	#RUNMODEL
-	preds = runmodel(batch)
+	preds = runmodel(batch, args)
 	#COMPOSEMASK
 	mask = composemask(preds, image)
 	#RLE
@@ -128,7 +125,7 @@ function generate_submission(df::DataFrame, args)
         end
     else
         for row in 1:nrow(df)
-            df_row = DataFrame("id" => df[row, :id], "rle" => predict(df[row, :id]))
+            df_row = DataFrame("id" => df[row, :id], "rle" => predict(df[row, :id], args))
             df_subm = vcat(df_subm, df_row)
         end
     end
@@ -136,7 +133,7 @@ function generate_submission(df::DataFrame, args)
 end
 
 function write_submission(df::DataFrame)
-    CSV.write("submission.csv", df_subm; bufsize=2^23)
+    CSV.write("submission.csv", df; bufsize=2^23)
 end
 
 function real_main()
