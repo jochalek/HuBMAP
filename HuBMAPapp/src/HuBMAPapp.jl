@@ -1,6 +1,6 @@
 module HuBMAPapp
 
-using CSV, Images, FileIO, DataFrames, FastAI, ArgParse
+using CSV, Images, FileIO, DataFrames, FastAI, FastVision, Flux, ArgParse
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -8,6 +8,10 @@ function parse_commandline()
         "--debug_csv"
             help = "Bypass predict and write a dummy submission.csv"
             action = :store_true
+        "--no_tiles"
+            help = "Bypass predict and write a dummy submission.csv"
+            action = :store_true
+            default = :store_false
         "--test_data", "-t"
             help = "The directory of the test data including test.csv and test_images/"
             arg_type = String
@@ -15,7 +19,7 @@ function parse_commandline()
         "--model", "-m"
             help = "The location of the inference model"
             arg_type = String
-            default = "/kaggle/input/models/initmodel.jld2"
+            default = "/kaggle/input/models/fastai5.jld2"
     end
     return parse_args(s)
 end
@@ -107,11 +111,19 @@ function predict(id, args)
     image = Images.load(joinpath(args["test_data"], "test_images", string(id) * ".tiff"))
 
 	#TILEIMAGE
-	batch = tileimage(image)
+    if args["no_tiles"]
+        batch = image
+    else
+	    batch = tileimage(image)
+    end
 	#RUNMODEL
 	preds = runmodel(batch, args)
 	#COMPOSEMASK
-	mask = composemask(preds, image)
+    if args["no_tiles"]
+        mask = preds
+    else
+        mask = composemask(preds, image)
+    end
 	#RLE
 	return encode_rle(mask)
 end
