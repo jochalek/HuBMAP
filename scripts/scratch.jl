@@ -23,24 +23,24 @@ masks = Datasets.loadfolderdata(
 data = (images, masks)
 quicksamples = [getobs(data, i) for i in rand(1:numobs(data), 10000)]
 
-# task, model = loadtaskmodel(datadir("sims", "models", "initmodel.jld2"))
+task, model = loadtaskmodel(datadir("sims", "models", "fastai5.jld2"))
 
-task = SupervisedTask(
-    (Image{2}(), Mask{2}(classes)),
-    (
-        ProjectiveTransforms((128, 128)),
-        ImagePreprocessing(),
-        OneHot()
-    )
-)
+# task = SupervisedTask(
+#     (Image{2}(), Mask{2}(classes)),
+#     (
+#         ProjectiveTransforms((128, 128)),
+#         ImagePreprocessing(),
+#         OneHot()
+#     )
+# )
 
-backbone = Metalhead.ResNet(34).layers[1:end-1]
-model = taskmodel(task, backbone);
+# backbone = Metalhead.ResNet(34).layers[1:end-1]
+# model = taskmodel(task, backbone);
 
-# model = gpu(model);
+model = gpu(model);
 
 lossfn = tasklossfn(task)
-traindl, validdl = taskdataloaders(quicksamples, task, 64, buffer=true, parallel=false)
+traindl, validdl = taskdataloaders(data, task, 64, buffer=true, parallel=false)
 optimizer = Adam()
 learner = Learner(model, lossfn; data=(traindl, validdl), optimizer, callbacks=[ToGPU()])
 fitonecycle!(learner, 1, 0.033)

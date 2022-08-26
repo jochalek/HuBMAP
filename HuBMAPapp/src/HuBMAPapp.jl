@@ -9,9 +9,8 @@ function parse_commandline()
             help = "Bypass predict and write a dummy submission.csv"
             action = :store_true
         "--no_tiles"
-            help = "Bypass predict and write a dummy submission.csv"
+            help = "Flag to use for models not needing tiling"
             action = :store_true
-            default = :store_false
         "--test_data", "-t"
             help = "The directory of the test data including test.csv and test_images/"
             arg_type = String
