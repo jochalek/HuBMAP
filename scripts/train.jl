@@ -3,20 +3,60 @@ quickactivate(@__DIR__)
 
 using FileIO, ImageIO, DataFrames, Images, FastAI, Flux, Metalhead, Wandb, Dates, Logging, HuBMAP
 using FastVision
+using ArgParse
+
+s = ArgParseSettings()
+@add_arg_table! s begin
+    "--lr"
+        arg_type = Float64
+        default  = 0.033
+    "--epochs"
+        arg_type = Int
+        default  = 1
+    "--imgsize"
+        arg_type = Int
+        default  = 128
+    "--batchsize"
+        arg_type = Int
+        default  = 2
+    "--backbone"
+        arg_type = String
+        default  = "resnet34"
+    "--dataset"
+        arg_type = String
+        default  = "HuBMAP_HPA"
+    "--prototype"
+        action = :store_true
+    "--nowandb"
+        action = :store_true
+end
+args = dict2ntuple(parse_args(s))
 
 ## Logging
 runname = HuBMAP.runfileid()
 
 lgbackend = WandbBackend(project = "HuBMAP",
                          name = "$runname",
-                         config = Dict("learning_rate" => 0.033,
-                         "Projective Transforms" => (128, 128),
-                         "batchsize" => 2,
-                         "epochs" => 10,
-                         "prototype" => false,
+                         config = Dict("learning_rate" => args.lr,
+                         "Projective Transforms" => (args.imgsize, args.imgsize),
+                         "batchsize" => args.batchsize,
+                         "epochs" => args.epochs,
+                         "prototype" => args.prototype,
                          "architecture" => "UNet",
-                         "backbone" => "ResNet",
-                         "dataset" => "HuBMAP_HPA"))
+                         "backbone" => args.backbone,
+                         "dataset" => args.dataset))
+
+function get_backbone(args)
+    if args.backbone == "resnet34"
+        backbone = Metalhead.ResNet(34).layers[1:end-1]
+    else
+        backbone = Metalhead.ResNet(34).layers[1:end-1]
+    end
+    return backbone
+end
+
+
+
 
 metricscb = LogMetrics(lgbackend)
 hparamscb = LogHyperParams(lgbackend)
@@ -33,12 +73,16 @@ datasets = Dict("HuBMAP_HPA" => (("exp_raw", "train_images"), ("exp_pro", "masks
                 "HuBMAP_HPA128" => (("exp_pro", "t128", "train"), ("exp_pro", "t128", "masks"))
                 )
 
-## Train on 128 presized images
-traindir(args...) = datadir(datasets[get_config(lgbackend, "dataset")][1]..., args...)
-labeldir(args...) = datadir(datasets[get_config(lgbackend, "dataset")][2]..., args...)
-modeldir(args...) = datadir("sims", "models", args...)
-classes = readlines(open(datadir("exp_pro", "codes.txt")))
+nfsdatadir(args...) = projectdir("../", "data", "HuBMAP", "data", args...)
 
+## Train on 128 presized images
+# traindir(args...) = nfsdatadir(datasets[args.dataset][1]..., args...)
+# labeldir(args...) = nfsdatadir(datasets[args.dataset][2]..., args...)
+traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
+labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
+modeldir(args...) = nfsdatadir("sims", "models", args...)
+classes = readlines(open(datadir("exp_pro", "codes.txt")))
+# classes = ["background", "prostate", "spleen", "lung", "kidney", "largeintestine"]
 
 images = Datasets.loadfolderdata(
     traindir(),
@@ -51,10 +95,9 @@ masks = Datasets.loadfolderdata(
     loadfn=f -> FastVision.loadmask(f, classes))
 
 data = (images, masks)
-quicksamples = [getobs(data, i) for i in rand(1:numobs(data), 10000)]
 
-if get_config(lgbackend, "prototype")
-    traindata = quicksamples
+if args.prototype
+    traindata = [getobs(data, i) for i in rand(1:numobs(data), 10000)]
 else
     traindata = data
 end
@@ -64,26 +107,26 @@ end
 task = SupervisedTask(
     (Image{2}(), Mask{2}(classes)),
     (
-        ProjectiveTransforms(get_config(lgbackend, "Projective Transforms")),
+        ProjectiveTransforms((args.imgsize, args.imgsize)),
         ImagePreprocessing(),
         OneHot()
     )
 )
 
-backbone = Metalhead.ResNet(34).layers[1:end-1]
+backbone = get_backbone(args)
 model = taskmodel(task, backbone);
 
 # model = gpu(model);
 
 lossfn = tasklossfn(task)
-batchsize = get_config(lgbackend, "batchsize")
-traindl, validdl = taskdataloaders(traindata, task, batchsize, buffer=true, parallel=false)
+batchsize = args.batchsize
+traindl, validdl = taskdataloaders(traindata, task, batchsize, buffer=true, parallel=false, collate=true)
 optimizer = Adam()
 learner = Learner(model, lossfn; data=(traindl, validdl), optimizer, callbacks=callbacks)
-epochs = get_config(lgbackend, "epochs")
-lr = get_config(lgbackend, "learning_rate")
+epochs = args.epochs
+lr = args.lr
 fitonecycle!(learner, epochs, lr)
 
-savetaskmodel(modeldir(String(runname * ".jld2"), task, learner.model, force = true)
+savetaskmodel(modeldir(String(runname * ".jld2")), task, learner.model, force = true)
 
-close(lg)
+close(lgbackend)

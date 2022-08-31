@@ -1,58 +1,4 @@
 using DrWatson, FileIO, ImageIO, DataFrames, Images
-# ##############################
-# ## DrWatson Data Management
-# ##############################
-# traindir(args...) = datadir("exp_raw", "train_images", args...)
-# labeldir(args...) = datadir("exp_pro", "masks", args...)
-# classes = readlines(open(datadir("exp_pro", "codes.txt")))
-
-# ##############################
-# ## Sample model generation
-# ##############################
-# using FastAI
-# images = Datasets.loadfolderdata(
-#     traindir(),
-#     filterfn=isimagefile,
-#     loadfn=loadfile)
-
-# masks = Datasets.loadfolderdata(
-#     labeldir(),
-#     filterfn=isimagefile,
-#     loadfn=f -> loadmask(f, classes))
-
-# data = (images, masks)
-
-# image, mask = sample = getobs(data, 1);
-# task = BlockTask(
-#     (Image{2}(), Mask{2}(classes)),
-#     (
-#         ProjectiveTransforms((128, 128)),
-#         ImagePreprocessing(),
-#         OneHot()
-#     )
-# )
-# checkblock(task.blocks, sample)
-# xs, ys = FastAI.makebatch(task, data, 1:3)
-# showbatch(task, (xs, ys))
-
-# savetaskmodel("../tmp/initmodel.jld2", task, learner.model, force = true)
-# task, model = loadtaskmodel("catsdogs.jld2")
-# model = gpu(model);
-# x, y =
-# samples = [getobs(data, i) for i in rand(1:100, 2)]
-# images = [sample[1] for sample in samples]
-# labels = [sample[2] for sample in samples]
-# preds = predictbatch(task, model, images; device = gpu, context = Inference())
-
-# begin
-# task, model = loadtaskmodel("/home/justin/projects/tmp/initmodel.jld2")
-# lossfn = tasklossfn(task)
-# traindl, validdl = taskdataloaders(data, task, 16)
-# optimizer = FastAI.ADAM()
-# learner = Learner(model, (traindl, validdl), optimizer, lossfn, ToGPU())
-# fitonecycle!(learner, 1, 0.033)
-# showoutputs(task, learner; n = 4)
-# end
 
 ##############################
 ## Mask encoding & decoding
@@ -93,11 +39,11 @@ end
 
 function gen_masks(df)
     #classes = Dict("prostate"=>Gray{N0f8}(0.03125), "spleen"=>Gray{N0f8}(0.0625), "lung"=>Gray{N0f8}(0.09375), "kidney"=>Gray{N0f8}(0.125), "largeintestine"=>Gray{N0f8}(0.15625))
-    classes = Dict("prostate"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.008),
-                   "spleen"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.008),
-                   "lung"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.008),
-                   "kidney"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.008),
-                   "largeintestine"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.008))
+    classes = Dict("prostate"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.004),
+                   "spleen"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.004),
+                   "lung"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.004),
+                   "kidney"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.004),
+                   "largeintestine"=>ColorTypes.Gray{FixedPointNumbers.N0f8}(0.004))
     if isdir(datadir("exp_pro", "masks"))
     else mkdir(datadir("exp_pro", "masks"))
     end
@@ -213,14 +159,14 @@ end
 
 # FIXME Iterator oversteps bounds, I think it
 # just goes back to 1...
-using FilePathsBase
+using FilePathsBase, FastAI, FastVision
 
 DSTDIR = Path(mktempdir())
 
 function presizeimagedir(srcdir, dstdir, sz)
-    pathdata = filterobs(isimagefile, loadfolderdata(srcdir))
+    pathdata = FastAI.MLUtils.filterobs(FastVision.isimagefile, loadfolderdata(srcdir))
 
-    Threads.@threads for i in 1:FastAI.nobs(pathdata)
+    Threads.@threads for i in 1:FastAI.numobs(pathdata)
         srcp = getobs(pathdata, i)
         p = relpath(srcp, srcdir)
         dstp = joinpath(dstdir, p)
@@ -241,22 +187,14 @@ function save_tiles(srcimage, dstdir; stepsize=128)
     for j in tiles
         for i in tiles
             tile = @view tmpimage[i:i+stepsize-1, j:j+stepsize-1]
-            save(string(dstdir) * "_" * string(i) * "_" * string(j) * ".png", tile)
+            if string(dstdir)[end-3:end] == ".png"
+                save(string(dstdir)[begin:end-4] * "_" * string(i) * "_" * string(j) * ".png", tile)
+            else
+                save(string(dstdir)[begin:end-5] * "_" * string(i) * "_" * string(j) * ".png", tile)
+            end
         end
     end
 end
-
-function save_tiles(srcimage, dstdir; stepsize=128)
-    tiles = 1:128:size(getobs(data, 1)[1], 1)
-
-    for j in 1:length(tiles)
-        for i in 1:length(tiles)
-            tile = @view srcimage[i:i+stepsize-1, j:j+stepsize-1]
-            save(string(dstdir) * "_" * string(i) * "_" * string(j) * ".png", tile)
-        end
-    end
-end
-
 
 ##############################
 ## Misc
