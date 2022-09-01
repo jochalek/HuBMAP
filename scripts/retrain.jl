@@ -25,9 +25,11 @@ s = ArgParseSettings()
     "--backbone"
         arg_type = String
         default  = "resnet34"
+    "--jld2"
+        arg_type = String
     "--dataset"
         arg_type = String
-        default  = "HuBMAP_HPA"
+        default  = "HuBMAP_HPA128"
     "--prototype"
         action = :store_true
     "--nowandb"
@@ -108,21 +110,9 @@ else
     traindata = data
 end
 
-# task, model = loadtaskmodel(datadir("sims", "models", "initmodel.jld2"))
 
-task = SupervisedTask(
-    (Image{2}(), Mask{2}(classes)),
-    (
-        ProjectiveTransforms((args.imgsize, args.imgsize)),
-        ImagePreprocessing(),
-        OneHot()
-    )
-)
-
-backbone = get_backbone(args)
-model = taskmodel(task, backbone);
-
-# model = gpu(model);
+task, model = loadtaskmodel(modeldir(args.jld2))
+model = gpu(model);
 
 lossfn = tasklossfn(task)
 batchsize = args.batchsize
