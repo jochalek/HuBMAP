@@ -507,6 +507,15 @@ repo-url = "https://github.com/FluxML/FastAI.jl.git"
 uuid = "5d0beca9-ade8-49ae-ad0b-a3cf890e669f"
 version = "0.5.0-dev"
 
+[[deps.FastMakie]]
+deps = ["FastAI", "InlineTest", "Makie", "NNlib"]
+git-tree-sha1 = "69938f23c0a5facb4dc1ea0481cea41ad7759b80"
+repo-rev = "master"
+repo-subdir = "FastMakie"
+repo-url = "/home/justin/.julia/dev/FastAI"
+uuid = "ca994201-3d74-4fad-8816-f8bc5449c7c3"
+version = "0.1.0"
+
 [[deps.FastVision]]
 deps = ["ColorVectorSpace", "Colors", "DataAugmentation", "DataDeps", "FastAI", "FixedPointNumbers", "Flux", "ImageIO", "ImageInTerminal", "IndirectArrays", "InlineTest", "MLUtils", "MakieCore", "ProgressMeter", "ShowCases", "StaticArrays", "Statistics", "UnicodePlots", "Zygote"]
 git-tree-sha1 = "ebb114eab152b672dc0ce9c1b89000f1cd31db14"
@@ -725,9 +734,9 @@ version = "0.16.11"
 
 [[deps.HDF5_jll]]
 deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
-git-tree-sha1 = "c003b31e2e818bc512b0ff99d7dce03b0c1359f5"
+git-tree-sha1 = "4cc2bb72df6ff40b055295fdef6d92955f9dede8"
 uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
-version = "1.12.2+1"
+version = "1.12.2+2"
 
 [[deps.HTML_Entities]]
 deps = ["StrTables"]

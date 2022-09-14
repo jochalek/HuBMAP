@@ -84,12 +84,12 @@ datasets = Dict("HuBMAP_HPA" => (("exp_raw", "train_images"), ("exp_pro", "masks
 nfsdatadir(args...) = projectdir("../", "data", "HuBMAP", "data", args...)
 
 ## Train on 128 presized images
-# traindir(args...) = nfsdatadir(datasets[args.dataset][1]..., args...)
-# labeldir(args...) = nfsdatadir(datasets[args.dataset][2]..., args...)
-traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
-labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
+traindir(argz...) = nfsdatadir(datasets[args.dataset][1]..., argz...)
+labeldir(argz...) = nfsdatadir(datasets[args.dataset][2]..., argz...)
+# traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
+# labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
 modeldir(args...) = nfsdatadir("sims", "models", args...)
-classes = readlines(open(datadir("exp_pro", "codes.txt")))
+classes = readlines(open(nfsdatadir("exp_pro", "codes.txt")))
 # classes = ["background", "prostate", "spleen", "lung", "kidney", "largeintestine"]
 
 images = Datasets.loadfolderdata(
@@ -105,7 +105,7 @@ masks = Datasets.loadfolderdata(
 data = (images, masks)
 
 if args.prototype
-    traindata = [getobs(data, i) for i in rand(1:numobs(data), 1024)]
+    traindata = [getobs(data, i) for i in rand(rng, 1:numobs(data), 1024)]
 else
     traindata = data
 end

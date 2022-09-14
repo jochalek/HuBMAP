@@ -1,6 +1,6 @@
 module HuBMAPapp
 
-using CSV, Images, FileIO, DataFrames, FastAI, FastVision, Flux, ArgParse
+using CSV, Images, FileIO, DataFrames, FastAI, FastVision, Flux, ArgParse, Metalhead
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -11,14 +11,18 @@ function parse_commandline()
         "--no_tiles"
             help = "Flag to use for models not needing tiling"
             action = :store_true
+        "--tilesize"
+            help = "Must match model input size"
+            arg_type = Int
+            default = 1024
         "--test_data", "-t"
             help = "The directory of the test data including test.csv and test_images/"
             arg_type = String
-            default = "/kaggle/input/hubmap-organ-segmentation"
+            default = "./"
         "--model", "-m"
             help = "The location of the inference model"
             arg_type = String
-            default = "/kaggle/input/models/fastai5.jld2"
+            default = "./model.jld2"
     end
     return parse_args(s)
 end
@@ -45,9 +49,10 @@ function tileimage(srcimage; stepsize=128)
     return tiledsrc
 end
 
-function composemask(preds, srcimage)
+function composemask(preds, srcimage, args)
     dims = size(srcimage)
-	tiles_per_row = length(1:128:size(srcimage, 1))
+    stepsize = args["tilesize"]
+	tiles_per_row = length(1:stepsize:size(srcimage, 1))
     return @view hvcat(tiles_per_row, preds...)[1:dims[1], 1:dims[2]] # FIXME tiles_per_row or something better?
 end
 
@@ -113,7 +118,7 @@ function predict(id, args)
     if args["no_tiles"]
         batch = image
     else
-	    batch = tileimage(image)
+	    batch = tileimage(image; stepsize=args["tilesize"])
     end
 	#RUNMODEL
 	preds = runmodel(batch, args)
@@ -121,7 +126,7 @@ function predict(id, args)
     if args["no_tiles"]
         mask = preds
     else
-        mask = composemask(preds, image)
+        mask = composemask(preds, image, args)
     end
 	#RLE
 	return encode_rle(mask)

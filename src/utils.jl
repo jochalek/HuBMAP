@@ -124,42 +124,42 @@ end
 
 # FIXME Iterator oversteps bounds, I think it
 # just goes back to 1...
-"""
-Returns 'stepsize' sized tiles of a source image.
-"""
-function tileimage(srcimage; stepsize=128)
-    #srcimage = FastAI.load(srcimage)
-    srcsz = size(srcimage, 1)
-    tiles = 1:stepsize:srcsz
-    tmpdims = length(tiles) * stepsize
-    tmpimage = zeros(typeof(srcimage[1]), tmpdims, tmpdims)
-    tmpimage[1:srcsz, 1:srcsz] .= srcimage
+# """
+# Returns 'stepsize' sized tiles of a source image. Images should be RBG.
+# """
+# function tileimage(srcimage; stepsize=128)
+#     #srcimage = FastAI.load(srcimage)
+#     srcsz = size(srcimage, 1)
+#     tiles = 1:stepsize:srcsz
+#     tmpdims = length(tiles) * stepsize
+#     tmpimage = ones(typeof(srcimage[1]), tmpdims, tmpdims)
+#     tmpimage[1:srcsz, 1:srcsz] .= srcimage
 
-    tiledsrc = []
+#     tiledsrc = []
 
-    #Threads.@threads for j in 1:length(tiles)
-        #for i in 1:length(tiles)
-    for j in tiles
-        for i in tiles
-            tile = @view tmpimage[i:i+stepsize-1, j:j+stepsize-1]
-            push!(tiledsrc, tile)
-        end
-    end
-    return tiledsrc
-end
-"""
-Returns a composite mask from
-tiled predictions.
-"""
-function composemask(preds, srcimage)
-    dims = size(srcimage)
-    return @view hvcat(24, preds...)[1:dims[1], 1:dims[2]] # FIXME hardcoded 24 tiles
-end
+#     #Threads.@threads for j in 1:length(tiles)
+#         #for i in 1:length(tiles)
+#     for j in tiles
+#         for i in tiles
+#             tile = @view tmpimage[i:i+stepsize-1, j:j+stepsize-1]
+#             push!(tiledsrc, tile)
+#         end
+#     end
+#     return tiledsrc
+# end
+# """
+# Returns a composite mask from
+# tiled predictions.
+# """
+# function composemask(preds, srcimage)
+#     dims = size(srcimage)
+#     return @view hvcat(24, preds...)[1:dims[1], 1:dims[2]] # FIXME hardcoded 24 tiles
+# end
 
 
 # FIXME Iterator oversteps bounds, I think it
 # just goes back to 1...
-using FilePathsBase, FastAI, FastVision
+using FilePathsBase, FastAI, FastVision, ColorTypes, FixedPointNumbers
 
 DSTDIR = Path(mktempdir())
 
@@ -181,7 +181,11 @@ function save_tiles(srcimage, dstdir; stepsize=128)
     srcsz = size(srcimage, 1)
     tiles = 1:stepsize:srcsz
     tmpdims = length(tiles) * stepsize
-    tmpimage = zeros(typeof(srcimage[1]), tmpdims, tmpdims)
+    if typeof(srcimage[1]) == ColorTypes.Gray{FixedPointNumbers.N0f8}
+        tmpimage = zeros(typeof(srcimage[1]), tmpdims, tmpdims)
+    else
+        tmpimage = ones(typeof(srcimage[1]), tmpdims, tmpdims)
+    end
     tmpimage[1:srcsz, 1:srcsz] .= srcimage
 
     for j in tiles

@@ -54,15 +54,12 @@ lgbackend = WandbBackend(project = "HuBMAP",
 
 function get_backbone(args)
     if args.backbone == "resnet34"
-        backbone = Metalhead.ResNet(34).layers[1:end-1]
+        backbone = Metalhead.ResNet(34; pretrain=true).layers[1:end-1]
     else
         backbone = Metalhead.ResNet(34).layers[1:end-1]
     end
     return backbone
 end
-
-
-
 
 metricscb = LogMetrics(lgbackend)
 hparamscb = LogHyperParams(lgbackend)
@@ -76,19 +73,18 @@ callbacks = [
 
 ## Datasets
 datasets = Dict("HuBMAP_HPA" => (("exp_raw", "train_images"), ("exp_pro", "masks")),
-                "HuBMAP_HPA128" => (("exp_pro", "t128", "train"), ("exp_pro", "t128", "masks"))
+                "HuBMAP_HPA128" => (("exp_pro", "t128", "train"), ("exp_pro", "t128", "masks")),
+                "HuBMAP_HPA256" => (("exp_pro", "t256", "train"), ("exp_pro", "t256", "masks"))
                 )
 
 nfsdatadir(args...) = projectdir("../", "data", "HuBMAP", "data", args...)
 
-## Train on 128 presized images
-# traindir(args...) = nfsdatadir(datasets[args.dataset][1]..., args...)
-# labeldir(args...) = nfsdatadir(datasets[args.dataset][2]..., args...)
+# traindir(argz...) = nfsdatadir(datasets[args.dataset][1]..., argz...)
+# labeldir(argz...) = nfsdatadir(datasets[args.dataset][2]..., argz...)
 traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
 labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
-modeldir(args...) = nfsdatadir("sims", "models", args...)
+modeldir(argz...) = nfsdatadir("sims", "models", argz...)
 classes = readlines(open(datadir("exp_pro", "codes.txt")))
-# classes = ["background", "prostate", "spleen", "lung", "kidney", "largeintestine"]
 
 images = Datasets.loadfolderdata(
     traindir(),
@@ -108,12 +104,10 @@ else
     traindata = data
 end
 
-# task, model = loadtaskmodel(datadir("sims", "models", "initmodel.jld2"))
-
 task = SupervisedTask(
     (Image{2}(), Mask{2}(classes)),
     (
-        ProjectiveTransforms((args.imgsize, args.imgsize)),
+     ProjectiveTransforms((args.imgsize, args.imgsize), augmentations=augs_projection(; flipy=true, max_warp=0)),
         ImagePreprocessing(),
         OneHot()
     )
@@ -122,16 +116,14 @@ task = SupervisedTask(
 backbone = get_backbone(args)
 model = taskmodel(task, backbone);
 
-# model = gpu(model);
-
-lossfn = tasklossfn(task)
+lossfn = Flux.dice_coeff_loss #tasklossfn(task)
 batchsize = args.batchsize
 traindl, validdl = taskdataloaders(traindata, task, batchsize, buffer=true, parallel=false, collate=true, rng=rng)
 optimizer = Adam()
 learner = Learner(model, lossfn; data=(traindl, validdl), optimizer, callbacks=callbacks)
 epochs = args.epochs
 lr = args.lr
-fitonecycle!(learner, epochs, lr)
+finetune!(learner, epochs, lr)
 
 savetaskmodel(modeldir(String(runname * ".jld2")), task, learner.model, force = true)
 
