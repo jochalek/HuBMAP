@@ -501,7 +501,7 @@ version = "0.1.1"
 
 [[deps.FastAI]]
 deps = ["DataDeps", "FeatureRegistries", "FileIO", "FilePathsBase", "Flux", "FluxTraining", "InlineTest", "JLD2", "MLDatasets", "MLUtils", "Markdown", "Parameters", "PrettyTables", "Reexport", "Requires", "Setfield", "Statistics", "Test", "TextAnalysis", "UnicodePlots"]
-git-tree-sha1 = "f63be1d554317e5878f6b63022ab3569e8757f5e"
+git-tree-sha1 = "9994ad36590617cc7b55535aec23a1d2d9e51e2d"
 repo-rev = "master"
 repo-url = "https://github.com/FluxML/FastAI.jl.git"
 uuid = "5d0beca9-ade8-49ae-ad0b-a3cf890e669f"
@@ -512,7 +512,7 @@ deps = ["FastAI", "InlineTest", "Makie", "NNlib"]
 git-tree-sha1 = "69938f23c0a5facb4dc1ea0481cea41ad7759b80"
 repo-rev = "master"
 repo-subdir = "FastMakie"
-repo-url = "/home/justin/.julia/dev/FastAI"
+repo-url = "https://github.com/FluxML/FastAI.jl"
 uuid = "ca994201-3d74-4fad-8816-f8bc5449c7c3"
 version = "0.1.0"
 
@@ -521,7 +521,7 @@ deps = ["ColorVectorSpace", "Colors", "DataAugmentation", "DataDeps", "FastAI", 
 git-tree-sha1 = "ebb114eab152b672dc0ce9c1b89000f1cd31db14"
 repo-rev = "master"
 repo-subdir = "FastVision"
-repo-url = "/home/justin/.julia/dev/FastAI"
+repo-url = "https://github.com/FluxML/FastAI.jl"
 uuid = "7bf02486-ff4c-4e73-b158-40c00866b54f"
 version = "0.1.0"
 
@@ -841,9 +841,9 @@ version = "1.2.1"
 
 [[deps.ImageMagick_jll]]
 deps = ["Artifacts", "Ghostscript_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "f025b79883f361fa1bd80ad132773161d231fd9f"
+git-tree-sha1 = "124626988534986113cfd876e3093e4a03890f58"
 uuid = "c73af94c-d91f-53ed-93a7-00f77d67a9d7"
-version = "6.9.12+2"
+version = "6.9.12+3"
 
 [[deps.ImageMetadata]]
 deps = ["AxisArrays", "ImageAxes", "ImageBase", "ImageCore"]
