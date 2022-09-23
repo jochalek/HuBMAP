@@ -1,6 +1,7 @@
 module HuBMAPapp
 
-using CSV, Images, FileIO, DataFrames, FastAI, FastVision, Flux, ArgParse, Metalhead
+using Flux: DataLoader
+using CSV, Images, FileIO, DataFrames, FastAI, FastVision, FastAI.Flux, ArgParse, Metalhead
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -28,7 +29,7 @@ function parse_commandline()
 end
 
 
-function tileimage(srcimage; stepsize=128)
+function tileimage(srcimage; stepsize)
     #srcimage = FastAI.load(srcimage)
     srcsz = size(srcimage, 1)
     tiles = 1:stepsize:srcsz
@@ -38,10 +39,14 @@ function tileimage(srcimage; stepsize=128)
 
     tiledsrc = []
 
+    ### Threads breaks gauranteed order,
+    ### mixing tiles I think
     #Threads.@threads for j in 1:length(tiles)
         #for i in 1:length(tiles)
-    for j in tiles
-        for i in tiles
+    ### This is row major, so not efficient
+    ### does it matter?
+    for i in tiles
+        for j in tiles
             tile = @view tmpimage[i:i+stepsize-1, j:j+stepsize-1]
             push!(tiledsrc, tile)
         end
@@ -53,7 +58,7 @@ function composemask(preds, srcimage, args)
     dims = size(srcimage)
     stepsize = args["tilesize"]
 	tiles_per_row = length(1:stepsize:size(srcimage, 1))
-    return @view hvcat(tiles_per_row, preds...)[1:dims[1], 1:dims[2]] # FIXME tiles_per_row or something better?
+    return @view hvcat(tiles_per_row, preds...)[1:dims[1], 1:dims[2]]
 end
 
 
@@ -65,6 +70,7 @@ function runmodel(batch, args)
 	return preds
 end
 
+#FIXME Probably can just use StatsBase by changing Array -> Vector
 """
 Transforms FastAI's inference mask of IndirectArray pixel labels
 inro a string fit for Kaggle submission.
@@ -103,13 +109,28 @@ function encode_rle(v)
 
 	for i in 1:length(vals)
 		if vals[i] != "background"
-			encoding = string(encoding, sum(lens[1:i]), " ", lens[i], " ")
+			pixel_idx = i == 1 ? 1 : sum(lens[1:i-1]) + 1
+			encoding = string(encoding, pixel_idx, " ", lens[i], " ")
 		end
 	end
-    #return strip(encoding) #FIXME is this the issue?
     return encoding
 end
 
+function predict_by_part(batch, args)
+    taskmodel = args["model"]
+    task, model = loadtaskmodel(taskmodel)
+    model = gpu(model);
+    minibatch = Int(3072 / args["tilesize"])
+    predictions = []
+
+
+    arrayloader = DataLoader(batch; batchsize=minibatch, shuffle=false)
+    for x in arrayloader
+        tmpred = predictbatch(task, model, x; device = gpu, context = Inference())
+        predictions = push!(predictions, tmpred...)
+    end
+    return predictions
+end
 
 function predict(id, args)
     image = Images.load(joinpath(args["test_data"], "test_images", string(id) * ".tiff"))
@@ -121,7 +142,11 @@ function predict(id, args)
 	    batch = tileimage(image; stepsize=args["tilesize"])
     end
 	#RUNMODEL
-	preds = runmodel(batch, args)
+    if args["no_tiles"]
+        preds = runmodel(batch, args)
+    else
+        preds = predict_by_part(batch, args)
+    end
 	#COMPOSEMASK
     if args["no_tiles"]
         mask = preds
@@ -141,6 +166,7 @@ function generate_submission(df::DataFrame, args)
         end
     else
         for row in 1:nrow(df)
+            @info "Predicting $(df[row, :id])"
             df_row = DataFrame("id" => df[row, :id], "rle" => predict(df[row, :id], args))
             df_subm = vcat(df_subm, df_row)
         end
@@ -172,5 +198,3 @@ end
 
 end # module
 
-## FIXME Remove before compile
-# HuBMAPapp.real_main(HuBMAPapp.df)

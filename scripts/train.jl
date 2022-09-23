@@ -74,15 +74,16 @@ callbacks = [
 ## Datasets
 datasets = Dict("HuBMAP_HPA" => (("exp_raw", "train_images"), ("exp_pro", "masks")),
                 "HuBMAP_HPA128" => (("exp_pro", "t128", "train"), ("exp_pro", "t128", "masks")),
-                "HuBMAP_HPA256" => (("exp_pro", "t256", "train"), ("exp_pro", "t256", "masks"))
+                "HuBMAP_HPA256" => (("exp_pro", "t256", "train"), ("exp_pro", "t256", "masks")),
+                "HuBMAP_HPA512" => (("exp_pro", "t512", "train"), ("exp_pro", "t512", "masks"))
                 )
 
 nfsdatadir(args...) = projectdir("../", "data", "HuBMAP", "data", args...)
 
-# traindir(argz...) = nfsdatadir(datasets[args.dataset][1]..., argz...)
-# labeldir(argz...) = nfsdatadir(datasets[args.dataset][2]..., argz...)
-traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
-labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
+traindir(argz...) = nfsdatadir(datasets[args.dataset][1]..., argz...)
+labeldir(argz...) = nfsdatadir(datasets[args.dataset][2]..., argz...)
+# traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
+# labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
 modeldir(argz...) = nfsdatadir("sims", "models", argz...)
 classes = readlines(open(datadir("exp_pro", "codes.txt")))
 

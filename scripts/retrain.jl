@@ -78,19 +78,18 @@ callbacks = [
 
 ## Datasets
 datasets = Dict("HuBMAP_HPA" => (("exp_raw", "train_images"), ("exp_pro", "masks")),
-                "HuBMAP_HPA128" => (("exp_pro", "t128", "train"), ("exp_pro", "t128", "masks"))
+                "HuBMAP_HPA256" => (("exp_pro", "t256", "train"), ("exp_pro", "t256", "masks")),
+                "HuBMAP_HPA512" => (("exp_pro", "t512", "train"), ("exp_pro", "t512", "masks"))
                 )
 
 nfsdatadir(args...) = projectdir("../", "data", "HuBMAP", "data", args...)
 
-## Train on 128 presized images
 traindir(argz...) = nfsdatadir(datasets[args.dataset][1]..., argz...)
 labeldir(argz...) = nfsdatadir(datasets[args.dataset][2]..., argz...)
 # traindir(argz...) = datadir(datasets[args.dataset][1]..., argz...)
 # labeldir(argz...) = datadir(datasets[args.dataset][2]..., argz...)
-modeldir(args...) = nfsdatadir("sims", "models", args...)
+modeldir(argz...) = nfsdatadir("sims", "models", argz...)
 classes = readlines(open(nfsdatadir("exp_pro", "codes.txt")))
-# classes = ["background", "prostate", "spleen", "lung", "kidney", "largeintestine"]
 
 images = Datasets.loadfolderdata(
     traindir(),
@@ -121,7 +120,7 @@ optimizer = Adam()
 learner = Learner(model, lossfn; data=(traindl, validdl), optimizer, callbacks=callbacks)
 epochs = args.epochs
 lr = args.lr
-fitonecycle!(learner, epochs, lr)
+finetune!(learner, epochs, lr)
 
 savetaskmodel(modeldir(String(runname * ".jld2")), task, learner.model, force = true)
 
