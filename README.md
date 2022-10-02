@@ -1,8 +1,11 @@
 # HuBMAP
 
-My attempt to make a Kaggle submission [HuBMAP + HPA - Hacking the Human Body](https://www.kaggle.com/competitions/hubmap-organ-segmentation)
+My first Kaggle submission.
 
-Work in progress...
+1,090th place.
+
+This project applies [FastAI.jl](https://github.com/FluxML/FastAI.jl)'s image segmentation to [HuBMAP + HPA - Hacking the Human Body](https://www.kaggle.com/competitions/hubmap-organ-segmentation).
+
 
 This code base is using the Julia Language and [DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/)
 to make a reproducible scientific project named
